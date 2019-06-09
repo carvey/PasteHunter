@@ -14,6 +14,9 @@ rule blacklist
         $f = /define\(.*?\)|require_once\(.*?\)/
         $g = "Technic Launcher is starting" // Minecraft mod dumps
         $h = "OTL logfile created on" // 
+        $i = "Rimworld" nocase // rimworld debug logs
+        $j = "DOTA_" nocase //dota debug logs
+        $vrp = "imagicthecat" nocase //role playing framwork db structure
     condition:
         any of them
 
