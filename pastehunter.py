@@ -65,6 +65,7 @@ class PasteHunter:
         # hold inputs and outputs registered in settings file
         self.inputs = []
         self.outputs = []
+        self.rules = None
 
         self.init_logging()
         self.init_inputs_outputs()
@@ -73,6 +74,9 @@ class PasteHunter:
         # Create Queue to hold paste URI's
         self.q = Queue()
         self.processes = []
+
+        self.cache_pastes = True
+
 
     def init_logging(self):
         # Set up the log file
@@ -149,7 +153,7 @@ class PasteHunter:
 
             # Compile the yara rules we will use to match pastes
             index_file = os.path.join(conf['yara']['rule_path'], 'index.yar')
-            rules = yara.compile(index_file)
+            self.rules = yara.compile(index_file)
         except Exception as e:
             print("Unable to Create Yara index: ", e)
             sys.exit()
@@ -188,10 +192,12 @@ class PasteHunter:
                     sleep(0.5)
                 else:
                     paste_data = self.q.get()
+
                     with timeout(seconds=5):
                         # Start a timer
                         start_time = time.time()
                         logger.debug("Found New {0} paste {1}".format(paste_data['pastesite'], paste_data['pasteid']))
+
                         # get raw paste and hash them
                         try:
                             
@@ -227,10 +233,11 @@ class PasteHunter:
                             except requests.exceptions.SSLError as e:
                                 logger.error("Unable to scan raw paste : {0} - {1}".format(paste_data['pasteid'], e))
                                 raw_paste_data = ""
+
                         # Process the paste data here
                         try:
                             # Scan with yara
-                            matches = rules.match(data=raw_paste_data)
+                            matches = self.rules.match(data=raw_paste_data)
                         except Exception as e:
                             logger.error("Unable to scan raw paste : {0} - {1}".format(paste_data['pasteid'], e))
                             continue
@@ -349,7 +356,8 @@ class PasteHunter:
                 # Check if the processors are active
                 # Paste History
                 logger.info("Populating Queue")
-                if os.path.exists('paste_history.tmp'):
+
+                if self.cache_pastes and os.path.exists('paste_history.tmp'):
                     with open('paste_history.tmp') as json_file:
                         paste_history = json.load(json_file)
                 else:
@@ -362,11 +370,11 @@ class PasteHunter:
                         input_history = []
                         
                     try:
-
                         i = importlib.import_module(input_name)
                         # Get list of recent pastes
                         logger.info("Fetching paste list from {0}".format(input_name))
                         paste_list, history = i.recent_pastes(conf, input_history)
+
                         for paste in paste_list:
                             self.q.put(paste)
                             queue_count += 1
@@ -374,10 +382,12 @@ class PasteHunter:
                     except Exception as e:
                         logger.error("Unable to fetch list from {0}: {1}".format(input_name, e))
 
-                logger.debug("Writing History")
-                # Write History
-                with open('paste_history.tmp', 'w') as outfile:
-                    json.dump(paste_history, outfile)
+                if self.cache_pastes:
+                    logger.debug("Writing History")
+                    # Write History
+                    with open('paste_history.tmp', 'w') as outfile:
+                        json.dump(paste_history, outfile)
+
                 logger.info("Added {0} Items to the queue".format(queue_count))
 
                 for proc in self.processes:
@@ -387,7 +397,6 @@ class PasteHunter:
                 logger.info("Sleeping for " + str(conf['general']['run_frequency']) + " Seconds")
                 sleep(conf['general']['run_frequency'])
             
-
 
         except KeyboardInterrupt:
             logger.info("Stopping Processes")
@@ -399,7 +408,6 @@ class PasteHunter:
 
 if __name__ == "__main__":
     scanner = PasteHunter()
-    print(scanner.inputs)
     scanner.start_scanner()
 
 
