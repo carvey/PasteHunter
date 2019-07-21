@@ -23,15 +23,19 @@ from multiprocessing import Queue
 VERSION = 1.1
 
 class timeout:
+
     def __init__(self, seconds=1, error_message='Timeout'):
         self.seconds = seconds
         self.error_message = error_message
+
     def handle_timeout(self, signum, frame):
         print("Process timeout: {0}".format(self.error_message))
         sys.exit(0)
+
     def __enter__(self):
         signal.signal(signal.SIGALRM, self.handle_timeout)
         signal.alarm(self.seconds)
+
     def __exit__(self, type, value, traceback):
         signal.alarm(0)
 
@@ -41,17 +45,15 @@ class PasteHunter:
         # hold inputs and outputs registered in settings file
         self.inputs = []
         self.outputs = []
+
+        # this will be our compiled yara Rules instance
         self.rules = None
+
+        # logger for this instance
         self.logger = None
+
+        # this will be our settings.json or testing.json config file
         self.conf = None
-
-        self.init_logging()
-        self.init_inputs_outputs()
-        self.init_yara()
-
-        # Create Queue to hold paste URI's
-        self.q = Queue()
-        self.processes = []
 
         # if set to testing mode, only one paste is processed before exiting
         self.testing = testing
@@ -59,6 +61,14 @@ class PasteHunter:
         # if in testing mode, don't cache any paste keys
         self.cache_pastes = not testing
 
+        # Create Queue to hold paste URI's
+        self.q = Queue()
+        self.processes = []
+
+        # initialize logging, inputs and outputs, and get yara rules compiled
+        self.init_logging()
+        self.init_inputs_outputs()
+        self.init_yara()
 
     def init_logging(self):
         # Setup Default logging
@@ -73,11 +83,11 @@ class PasteHunter:
         # Version info
         self.logger.info("Starting PasteHunter Version: {0}".format(VERSION))
 
-        # Parse the self.config file
+        # Parse the config file
         self.logger.info("Reading Configs")
-        self.conf = parse_config()
+        self.conf = parse_config(self.testing)
 
-        # If the self.config failed to parse
+        # If the config failed to parse
         if not self.conf:
             sys.exit()
 
@@ -132,7 +142,6 @@ class PasteHunter:
             if input_values["enabled"]:
                 self.inputs.append(input_values["module"])
                 self.logger.info("Enabled Input: {0}".format(input_type))
-
 
         # Configure Outputs
         self.logger.info("Configuring Outputs")

@@ -1,0 +1,164 @@
+{
+  "inputs": {
+    "pastebin":{
+      "enabled": true,
+      "module": "inputs.pastebin",
+      "api_scrape": "https://scrape.pastebin.com/api_scraping.php",
+      "api_raw": "https://scrape.pastebin.com/api_scrape_item.php?i=",
+      "paste_limit": 200,
+      "store_all": false
+    },
+    "dumpz": {
+      "enabled": false,
+      "comment": "This api endpoint has been removed.",
+      "module": "inputs.dumpz",
+      "api_scrape": "https://dumpz.org/api/recent",
+      "api_raw": "https://dumpz.org/api/dump",
+      "paste_limit": 200,
+      "store_all": false
+    },
+    "gists": {
+      "enabled": false,
+      "module": "inputs.gists",
+      "api_token": "",
+      "api_limit": 100,
+      "store_all": false,
+      "user_blacklist": [],
+      "file_blacklist": ["grahamcofborg-eval-package-list", "Changed Paths"]
+    },
+    "slexy":{
+      "enabled": false,
+      "module": "inputs.slexy",
+      "store_all": false,
+      "api_scrape": "http://slexy.org/recent",
+      "api_raw": "http://slexy.org/raw",
+      "api_view": "http://slexy.org/view"
+    },
+    "stackexchange":{
+      "enabled": false,
+      "module": "inputs.stackexchange",
+      "site_list": ["stackoverflow","serverfault", "superuser", "webapps", "webmasters", "dba"],
+      "api_key": "",
+      "store_filter": "!)r_ttsG0v3bE1vo3*8Ki",
+      "pagesize": 100,
+      "store_all": true,
+      "api_scrape": "https://api.stackexchange.com/2.2/questions"
+    }
+  },
+  "outputs": {
+    "elastic_output": {
+      "enabled": false,
+      "module": "outputs.elastic_output",
+      "classname": "ElasticOutput",
+      "elastic_index": "paste-test",
+      "elastic_host": "172.16.10.10",
+      "elastic_port": 9200,
+      "elastic_user": "elastic",
+      "elastic_pass": "changeme",
+      "elastic_ssl": false,
+      "weekly_index": true
+    },
+    "json_output": {
+      "enabled": true,
+      "module": "outputs.json_output",
+      "classname": "JsonOutput",
+      "output_path": "logs/json/",
+      "store_raw": true,
+      "encode_raw": true
+    },
+    "csv_output": {
+      "enabled": false,
+      "module": "outputs.csv_output",
+      "classname": "CSVOutput",
+      "output_path": "logs/csv/"
+    },
+    "syslog_output": {
+      "enabled": false,
+      "module": "outputs.syslog_output",
+      "classname": "SyslogOutput",
+      "host": "192.168.1.1",
+      "port": 514
+    },
+    "smtp_output": {
+      "enabled": false,
+      "module": "outputs.smtp_output",
+      "classname": "SMTPOutput",
+      "smtp_host": "smtp.server.com",
+      "smtp_port": 25,
+      "smtp_security": "starttls",
+      "smtp_user": "smtpusername",
+      "smtp_pass": "smtppassword",
+      "recipients" : {
+        "recipient_1": {
+          "address": "emailaddress that gets the alerts",
+          "rule_list": ["custom_keywords"],
+          "mandatory_rule_list": []
+        },
+        "recipient_2": {
+          "address": "emailaddress that gets the alerts",
+          "rule_list": [],
+          "mandatory_rule_list": ["keyword1", "keyword2"]
+        }
+      }
+    },
+    "slack_output": {
+      "enabled": false,
+      "module": "outputs.slack_output",
+      "classname": "SlackOutput",
+      "webhook_url": "",
+      "rule_list": ["custom_keywords"]
+    },
+    "twilio_output": {
+      "enabled": false,
+      "module": "outputs.twilio_output",
+      "classname": "TwilioOutput",
+      "account_sid": "",
+      "auth_token": "",
+      "twilio_sender": "",
+      "recipient_list": [],
+      "rule_list": ["custom_keywords"]
+    }
+  },
+  "yara": {
+    "rule_path": "YaraRules",
+    "blacklist": true,
+    "test_rules": false
+  },
+  "log": {
+    "log_to_file": false,
+    "log_file": "pastehunter",
+    "logging_level": 20,
+    "log_path": "logs",
+    "format": "%(asctime)s [%(threadName)-12.12s] %(levelname)s:%(message)s"
+  },
+  "general": {
+    "run_frequency": 300
+  },
+  "post_process": {
+    "post_email": {
+      "enabled": true,
+      "module": "postprocess.post_email",
+      "rule_list": ["email_list"]
+    },
+    "post_b64": {
+      "enabled": true,
+      "module": "postprocess.post_b64",
+      "rule_list": ["b64_exe", "b64_rar", "b64_zip", "b64_gzip"],
+      "cuckoo": {
+        "enabled": false,
+        "api_host": "127.0.0.1",
+        "api_port": 8080
+      },
+      "viper": {
+        "enabled": false,
+        "api_host": "127.0.0.1",
+        "api_port": 8080
+      }
+    },
+    "post_entropy": {
+      "enabled": false,
+      "module": "postprocess.post_entropy",
+      "rule_list": ["ALL"]
+    }
+  }
+}
