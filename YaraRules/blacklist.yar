@@ -17,6 +17,7 @@ rule blacklist
         $i = "Rimworld" nocase // rimworld debug logs
         $j = "DOTA_" nocase //dota debug logs
         $vrp = "imagicthecat" nocase //role playing framwork db structure
+        $chocolatey = "chocolateyInstall.ps1" nocase
     condition:
         any of them
 

@@ -3,6 +3,7 @@ import re
 import hashlib
 import gzip
 import logging
+import magic
 import requests
 from base64 import b64decode
 # This gets the raw paste and the paste_data json object
@@ -46,20 +47,36 @@ def run(results, raw_paste_data, paste_object):
                 except Exception as e:
                     logger.error("Unable to decompress gzip stream")
             if rule == 'b64_exe':
+                print("b64 exe!!")
                 try:
-                    raw_exe = b64decode(raw_paste_data)
-                    paste_object["exe_size"] = len(raw_exe)
-                    paste_object["exe_md5"] = hashlib.md5(raw_exe).hexdigest()
-                    paste_object["exe_sha256"] = hashlib.sha256(raw_exe).hexdigest()
+                    decoded_data = b64decode(raw_paste_data)
+                    paste_object["exe_size"] = len(decoded_data)
+                    exe_md5 = hashlib.md5(decoded_data).hexdigest()
+                    paste_object["exe_md5"] = exe_md5
+                    exe_sha256 = hashlib.sha256(decoded_data).hexdigest()
+                    paste_object["exe_sha256"] = exe_sha256
 
-                    # We are guessing that the sample has been submitted, and crafting a URL
-                    paste_object["VT"] = 'https://www.virustotal.com/#/file/{0}'.format(paste_object["exe_md5"])
+                    # this should only get put in if this link will be valid
+                    # paste_object["VT"] = 'https://www.virustotal.com/#/file/{0}'.format(paste_object["exe_md5"])
+                    # vt_url = 'https://www.virustotal.com/api/v3/files/%s' % exe_md5
+                    # vt_result = requests.get(vt_url, headers={'x-apikey': 'dac8c3943ea25cab7775c5be68ac67c753cb16a6fa9f63f50bd8cedf5a608b58'})
+                    # paste_object["vt_result"] = vt_result
+
+                    # # write the decoded data to a file, get some data on it, and rm it
+                    tmp_file = open('/tmp/%s' % exe_md5, 'w')
+                    tmp_file.write(decoded_data)
+                    tmp_file.close()
+
+                    paste_object["magic"] = magic.from_file('tmp/%s' % exe_md5)
+                    paste_object["mime"] = magic.from_file('tmp/%s' % exe_md5, mime=True)
+
+                    os.remove('/tmp/%s' % exe_md5)
 
                     # Cuckoo
                     if conf["post_process"]["post_b64"]["cuckoo"]["enabled"]:
                         logger.info("Submitting to Cuckoo")
                         try:
-                            task_id = send_to_cuckoo(raw_exe, paste_object["pasteid"])
+                            task_id = send_to_cuckoo(decoded_data, paste_object["pasteid"])
                             paste_object["Cuckoo Task ID"] = task_id
                             logger.info("exe submitted to Cuckoo with task id {0}".format(task_id))
                         except Exception as e:
@@ -67,7 +84,7 @@ def run(results, raw_paste_data, paste_object):
 
                     # Viper
                     if conf["post_process"]["post_b64"]["viper"]["enabled"]:
-                        send_to_cuckoo(raw_exe, paste_object["pasteid"])
+                        send_to_cuckoo(decoded_data, paste_object["pasteid"])
 
                     # VirusTotal
 
@@ -82,12 +99,12 @@ def run(results, raw_paste_data, paste_object):
     return paste_object
 
 
-def send_to_cuckoo(raw_exe, pasteid):
+def send_to_cuckoo(decoded_data, pasteid):
     cuckoo_ip = conf["post_process"]["post_b64"]["cuckoo"]["api_host"]
     cuckoo_port = conf["post_process"]["post_b64"]["cuckoo"]["api_port"]
     cuckoo_host = 'http://{0}:{1}'.format(cuckoo_ip, cuckoo_port)
     submit_file_url = '{0}/tasks/create/file'.format(cuckoo_host)
-    files = {'file': ('{0}.exe'.format(pasteid), io.BytesIO(raw_exe))}
+    files = {'file': ('{0}.exe'.format(pasteid), io.BytesIO(decoded_data))}
     submit_file = requests.post(submit_file_url, files=files).json()
     task_id = None
     try:
