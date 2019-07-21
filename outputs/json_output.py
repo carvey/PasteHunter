@@ -8,7 +8,8 @@ logger = logging.getLogger('pastehunter')
 
 config = parse_config()
 
-class JsonOutput():
+
+class JsonOutput:
     def __init__(self):
         base_path = config['outputs']['json_output']['output_path']
         self.json_path = base_path

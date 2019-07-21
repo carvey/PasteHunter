@@ -23,12 +23,12 @@ class SlexySite(object):
 
     def create_req(self, url):
         return urllib.Request(
-            url,
-            data=None,
-            headers={
-              'Referer': self.url_recent,
-              'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.92 Safari/537.36'
-            }
+                url,
+                data=None,
+                headers={
+                    'Referer': self.url_recent,
+                    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.92 Safari/537.36'
+                }
         )
 
 
@@ -82,19 +82,15 @@ def recent_pastes(conf, input_history):
     pid_to_process = set()
     for pid in recent_pids:
         if pid in input_history:
-           history.append(pid)
+            history.append(pid)
         else:
-           pid_to_process.add(pid)
+            pid_to_process.add(pid)
     try:
         for pid in pid_to_process:
             paste = SlexyPaste(pid)
             history.append(paste.pid)
-            paste_data = {}
-            paste_data['confname'] = 'slexy'
-            paste_data['scrape_url'] = paste.url.full_url
-            paste_data['pasteid'] = paste.pid
-            paste_data['pastesite'] = paste.site
-            paste_data['@timestamp'] = paste.timestamp
+            paste_data = {'confname': 'slexy', 'scrape_url': paste.url.full_url, 'pasteid': paste.pid,
+                          'pastesite': paste.site, '@timestamp': paste.timestamp}
             paste_list.append(paste_data)
         return paste_list, history
     except Exception as e:

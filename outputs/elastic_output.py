@@ -3,12 +3,13 @@ from elasticsearch import Elasticsearch
 from common import parse_config
 from datetime import datetime
 
+
 class ElasticOutput(OutputBase):
 
     def __init__(self):
         super().__init__()
         self.get_standard_options('elastic_output')
-         
+
         # Set up the database connection
         es_host = self.config['outputs']['elastic_output']['elastic_host']
         es_port = self.config['outputs']['elastic_output']['elastic_port']
@@ -45,10 +46,10 @@ class ElasticOutput(OutputBase):
                 paste_data['raw_paste_url'] = 'http://files.charlesarvey.com/pastes/%s' % pasteid
                 self.es.index(index=index_name, doc_type='paste', id=pasteid, body=paste_data)
                 self.logger.debug("Stored {0} Paste {1}, Matched Rule {2}".format(paste_data['pastesite'],
-                                                                             paste_data['pasteid'],
-                                                                             paste_data['YaraRule']
-                                                                             )
-                             )
+                                                                                  paste_data['pasteid'],
+                                                                                  paste_data['YaraRule']
+                                                                                  )
+                                  )
 
                 # abstract this out eventually
                 if 'raw_paste' not in paste_data:
@@ -59,4 +60,3 @@ class ElasticOutput(OutputBase):
                 raise Exception(e)
         else:
             self.logger.error("Elastic Search Enabled, not configured!")
-

@@ -28,7 +28,6 @@ version = '1.0'
 # The full version, including alpha/beta/rc tags
 release = '1.0'
 
-
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -68,7 +67,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
-
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -82,7 +80,7 @@ html_theme = 'sphinx_rtd_theme'
 #
 html_theme_options = {
     'canonical_url': '',
-    #'analytics_id': 'UA-XXXXXXX-1',  #  Provided by Google in your dashboard
+    # 'analytics_id': 'UA-XXXXXXX-1',  #  Provided by Google in your dashboard
     'logo_only': False,
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
@@ -116,7 +114,6 @@ html_static_path = ['_static']
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'PasteHunterdoc'
 
-
 # -- Options for LaTeX output ------------------------------------------------
 
 latex_elements = {
@@ -145,7 +142,6 @@ latex_documents = [
      'Kevin Breen', 'manual'),
 ]
 
-
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
@@ -154,7 +150,6 @@ man_pages = [
     (master_doc, 'pastehunter', 'PasteHunter Documentation',
      [author], 1)
 ]
-
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -166,7 +161,6 @@ texinfo_documents = [
      author, 'PasteHunter', 'One line description of project.',
      'Miscellaneous'),
 ]
-
 
 # -- Options for Epub output -------------------------------------------------
 

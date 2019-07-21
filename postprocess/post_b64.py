@@ -8,13 +8,14 @@ import requests
 from base64 import b64decode
 # This gets the raw paste and the paste_data json object
 from common import parse_config
+
 conf = parse_config()
 
 logger = logging.getLogger('pastehunter')
 
-def run(results, raw_paste_data, paste_object):
 
-    '''
+def run(results, raw_paste_data, paste_object):
+    """
 
     ToDo: Lets look at multiple base64 streams
     for now only accept if the entire paste is
@@ -33,7 +34,7 @@ def run(results, raw_paste_data, paste_object):
     counter = 0
     for b64_str in b64_strings:
 
-    '''
+    """
 
     for rule in results:
         if len(raw_paste_data) > 0:
@@ -89,8 +90,7 @@ def run(results, raw_paste_data, paste_object):
                     # VirusTotal
 
                 except Exception as e:
-                    logger.error("Unable to decode exe file")
-
+                    logger.error("Unable to decode exe file. Error: %s" % e)
 
     # Get unique domain count
     # Update the json

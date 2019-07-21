@@ -10,7 +10,7 @@ logger = logging.getLogger('pastehunter')
 config = parse_config()
 
 
-class SlackOutput():
+class SlackOutput:
     def __init__(self):
         self.valid = True
         self.webhook_url = config['outputs']['slack_output']['webhook_url']
@@ -38,7 +38,9 @@ class SlackOutput():
                             "fallback": "Plan a vacation",
                             "author_name": "PasteHunter",
                             "title": "Paste ID {0}".format(paste_data['pasteid']),
-                            "text": "Yara Rule {0} Found on {1}\n\r{2}".format(paste_data['YaraRule'], paste_data['pastesite'], paste_data['scrape_url'])
+                            "text": "Yara Rule {0} Found on {1}\n\r{2}".format(paste_data['YaraRule'],
+                                                                               paste_data['pastesite'],
+                                                                               paste_data['scrape_url'])
                         }
                     ]
                 }
@@ -48,4 +50,4 @@ class SlackOutput():
                     logger.debug("Paste sent to slack")
                 else:
                     logger.error(
-                        "Failed to post to slack Status Code {0}".format(req.status_code))
+                            "Failed to post to slack Status Code {0}".format(req.status_code))

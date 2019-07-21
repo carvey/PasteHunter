@@ -3,6 +3,7 @@ import logging
 
 logger = logging.getLogger('pastehunter')
 
+
 # Parse the config file in to a dict
 def parse_config(testing=False):
     if not testing:

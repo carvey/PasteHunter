@@ -4,11 +4,12 @@ import json
 import os
 from pastehunter import PasteHunter
 
+
 class APITests(unittest.TestCase):
 
     def setup_scrape_results(self):
         scrape_results = [{
-	    "scrape_url": "https://scrape.pastebin.com/api_scrape_item.php?i=abcd1234",
+            "scrape_url": "https://scrape.pastebin.com/api_scrape_item.php?i=abcd1234",
             "full_url": "https://pastebin.com/abcd1234",
             "date": "1442911802",
             "key": "abcd1234",
@@ -17,11 +18,11 @@ class APITests(unittest.TestCase):
             "title": "Once we all know when we goto function",
             "syntax": "java",
             "user": "admin"
-            }]
+        }]
 
-        responses.add(responses.GET, "https://scrape.pastebin.com/api_scraping.php?limit=200", 
-                json=scrape_results, status=404
-                )
+        responses.add(responses.GET, "https://scrape.pastebin.com/api_scraping.php?limit=200",
+                      json=scrape_results, status=404
+                      )
 
     def get_log(self):
         json_log = open('logs/json/abcd1234')
@@ -35,9 +36,9 @@ class APITests(unittest.TestCase):
         self.setup_scrape_results()
         raw_paste = "TVqQAAMAAAAEAAAA//8AALgAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAA4fug4AtAnNIbgBTM0hVGhpcyBwcm9ncmFtIGNhbm5vdCBiZSBydW4gaW4gRE9TIG1vZGUuDQ0KJAAAAAAAAABQRQAATAEDAP7MnlkAAAAAAAAAAOAAAgELAQgAAJwAAAASAAAAAAAATroAAAAgAAAAAAAAAABAAAAgAAAAAgAABAAAAAAAAAAEAAAAAAAAAAAAAQAAAgAAAAAAAAIAQIUAABAAABAAAAAAEAAAEAAAAAAAABAAAAAAAAAAAAAAAPS5AABXAAAAAMAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAOAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAACAAAAAAAAAAAAAAACCAAAEgAAAAAAAAAAAAAubun"
 
-        responses.add(responses.GET, "https://scrape.pastebin.com/api_scrape_item.php?i=abcd1234", 
-                body=raw_paste, status=404
-                )
+        responses.add(responses.GET, "https://scrape.pastebin.com/api_scrape_item.php?i=abcd1234",
+                      body=raw_paste, status=404
+                      )
 
         pastehunter = PasteHunter(testing=True)
         pastehunter.start_scanner()

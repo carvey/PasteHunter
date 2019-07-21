@@ -2,6 +2,7 @@ import re
 import math
 from collections import Counter
 
+
 def shannon_entropy(s):
     # https://rosettacode.org/wiki/Entropy#Python
     s = str(s)

@@ -5,7 +5,7 @@ from common import parse_config
 config = parse_config()
 
 
-class CSVOutput():
+class CSVOutput:
     def __init__(self):
         base_path = config['outputs']['csv_output']['output_path']
         # Get todays CSV
@@ -27,10 +27,10 @@ class CSVOutput():
         if self.test:
             # date, _id, YaraRule, raw_url
             csv_line = '{0},{1},{2},{3},{4}'.format(paste_data['@timestamp'],
-                                                paste_data['pasteid'],
-                                                paste_data['YaraRule'],
-                                                paste_data['scrape_url'],
-                                                paste_data['pastesite'])
+                                                    paste_data['pasteid'],
+                                                    paste_data['YaraRule'],
+                                                    paste_data['scrape_url'],
+                                                    paste_data['pastesite'])
             with open(self.csv_path, 'a') as out:
                 out.write('{0}\n'.format(csv_line))
         else:

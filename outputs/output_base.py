@@ -1,7 +1,8 @@
 from common import parse_config
 import logging
 
-class OutputBase():
+
+class OutputBase:
     """
     This class sets a number of standard options that all outputs can utilize.
     Options can be set at the global or output specific level in the settings file.
@@ -16,7 +17,7 @@ class OutputBase():
         """
         self.config = parse_config()
         self.logger = logging.getLogger('pastehunter')
-        
+
         # if globals key is present under "outputs", get each standard output option or set a default
         self.whitelist_result_type = self.config['outputs'].get('globals', {}).get('whitelist_result_type', [])
         self.blacklist_result_type = self.config['outputs'].get('globals', {}).get('blacklist_result_type', [])
@@ -36,8 +37,10 @@ class OutputBase():
 
         # check to see if any specific ouput has set it's own standard option
         # as this is a more specific setting, it should override any global setting
-        self.whitelist_result_type = self.config['outputs'][output_type].get('whitelist_result_type', self.whitelist_result_type)
-        self.blacklist_result_type = self.config['outputs'][output_type].get('blacklist_result_type', self.blacklist_result_type)
+        self.whitelist_result_type = self.config['outputs'][output_type].get('whitelist_result_type',
+                                                                             self.whitelist_result_type)
+        self.blacklist_result_type = self.config['outputs'][output_type].get('blacklist_result_type',
+                                                                             self.blacklist_result_type)
         self.exclude_raw = self.config['outputs'][output_type].get('exclude_raw', self.exclude_raw)
         self.raw_only = self.config['outputs'][output_type].get('raw_only', self.raw_only)
 
@@ -54,19 +57,20 @@ class OutputBase():
         if self.whitelist_result_type:
             # if a yara rule doesn't match one of the whitelisted types
             if not set(self.whitelist_result_type) & set(paste_data['YaraRule']):
-                self.logger.info("Paste skipped: no match between paste rules {0} and whitelisted rules {1}".format(paste_data['YaraRule'], 
-                                                                                                                self.whitelist_result_type)
-                                                                                                                )
+                self.logger.info("Paste skipped: no match between paste rules {0} and whitelisted rules {1}".format(
+                        paste_data['YaraRule'],
+                        self.whitelist_result_type)
+                                 )
                 return None
 
         # if the settings specify a yara rule to exclude
         if self.blacklist_result_type:
             # if a blacklistedd rule matches the a yara rule for this paste
             if set(self.blacklist_result_type) & set(paste_data['YaraRule']):
-                self.logger.info("Paste skipped: match found between paste rules {0} and blacklisted rules {1}".format(paste_data['YaraRule'], 
-                                                                                                                self.blacklist_result_type)
-                                                                                                                )
+                self.logger.info("Paste skipped: match found between paste rules {0} and blacklisted rules {1}".format(
+                        paste_data['YaraRule'],
+                        self.blacklist_result_type)
+                                 )
                 return None
 
         return paste_data
-

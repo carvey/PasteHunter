@@ -3,6 +3,7 @@ import logging
 
 logger = logging.getLogger('pastehunter')
 
+
 def recent_pastes(conf, input_history):
     # populate vars from config
     paste_limit = conf['inputs']['dumpz']['paste_limit']
@@ -33,7 +34,7 @@ def recent_pastes(conf, input_history):
             paste_data['pasteid'] = paste['id']
             paste_data['pastesite'] = 'dumpz.org'
 
-            #paste_data['scrape_url'] = '{0}{1}'.format(conf['dumpz']['api_raw'], paste['id'])
+            # paste_data['scrape_url'] = '{0}{1}'.format(conf['dumpz']['api_raw'], paste['id'])
 
             paste_data['scrape_url'] = 'https://dumpz.org/{0}/text/'.format(paste['id'])
 

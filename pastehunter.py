@@ -1,26 +1,27 @@
 #!/usr/bin/python3
 
-import os
-import sys
-import yara
-import json
-import hashlib
-import requests
-import multiprocessing
-import importlib
-import logging
-from logging import handlers 
-import time
 import errno
+import hashlib
+import importlib
+import json
+import logging
+import multiprocessing
+import os
 import signal
+import sys
+import time
+from logging import handlers
+from multiprocessing import Queue
 from time import sleep
 from urllib.parse import unquote_plus
-from common import parse_config
-from postprocess import post_email
 
-from multiprocessing import Queue
+import requests
+import yara
+
+from common import parse_config
 
 VERSION = 1.1
+
 
 class timeout:
 
@@ -36,8 +37,9 @@ class timeout:
         signal.signal(signal.SIGALRM, self.handle_timeout)
         signal.alarm(self.seconds)
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, _type, value, traceback):
         signal.alarm(0)
+
 
 class PasteHunter:
 
@@ -96,24 +98,27 @@ class PasteHunter:
             if self.conf["log"]["log_path"] != "":
                 logfile = "{0}/{1}.log".format(self.conf["log"]["log_path"], self.conf["log"]["log_file"])
                 # Assure directory exists
-                try: os.makedirs(self.conf["log"]["log_path"], exist_ok=True)  # Python>3.2
+                try:
+                    os.makedirs(self.conf["log"]["log_path"], exist_ok=True)  # Python>3.2
                 except TypeError:
                     try:
                         os.makedirs(self.conf["log"]["log_path"])
-                    except OSError as exc: # Python >2.5
+                    except OSError as exc:  # Python >2.5
                         if exc.errno == errno.EEXIST and os.path.isdir(self.conf["log"]["log_path"]):
                             pass
-                        else: self.logger.error("Can not create log file {0}: {1}".format(self.conf["log"]["log_path"], exc))
+                        else:
+                            self.logger.error(
+                                    "Can not create log file {0}: {1}".format(self.conf["log"]["log_path"], exc))
             else:
                 logfile = "{0}.log".format(self.conf["log"]["log_file"])
-            fileHandler = handlers.RotatingFileHandler(logfile, mode='a+', maxBytes=(1048576*5), backupCount=7)
+            file_handler = handlers.RotatingFileHandler(logfile, mode='a+', maxBytes=(1048576 * 5), backupCount=7)
             if self.conf["log"]["format"] != "":
-                fileFormatter = logging.Formatter("{0}".format(self.conf["log"]["format"]))
-                fileHandler.setFormatter(fileFormatter)
+                file_formatter = logging.Formatter("{0}".format(self.conf["log"]["format"]))
+                file_handler.setFormatter(file_formatter)
             else:
-                fileHandler.setFormatter(logFormatter)
-            fileHandler.setLevel(self.conf["log"]["logging_level"])
-            self.logger.addHandler(fileHandler)
+                file_handler.setFormatter(logFormatter)
+            file_handler.setLevel(self.conf["log"]["logging_level"])
+            self.logger.addHandler(file_handler)
             self.logger.info("Enabled Log File: {0}".format(logfile))
         else:
             self.logger.info("Logging to file disabled.")
@@ -159,8 +164,8 @@ class PasteHunter:
         try:
             # Update the yara rules index
             self.create_yara_index(self.conf['yara']['rule_path'],
-                       self.conf['yara']['blacklist'],
-                       self.conf['yara']['test_rules'])
+                                   self.conf['yara']['blacklist'],
+                                   self.conf['yara']['test_rules'])
 
             # Compile the yara rules we will use to match pastes
             index_file = os.path.join(self.conf['yara']['rule_path'], 'index.yar')
@@ -168,7 +173,6 @@ class PasteHunter:
         except Exception as e:
             print("Unable to Create Yara index: ", e)
             sys.exit()
-
 
     def create_yara_index(self, rule_path, blacklist, test_rules):
         index_file = os.path.join(rule_path, 'index.yar')
@@ -188,7 +192,6 @@ class PasteHunter:
                     include = 'include "{0}"\n'.format(filename)
                     yar.write(include)
 
-
     def paste_scanner(self):
         """
         Get a paste URI from the Queue
@@ -207,31 +210,33 @@ class PasteHunter:
                     with timeout(seconds=5):
                         # Start a timer
                         start_time = time.time()
-                        self.logger.debug("Found New {0} paste {1}".format(paste_data['pastesite'], paste_data['pasteid']))
+                        self.logger.debug(
+                                "Found New {0} paste {1}".format(paste_data['pastesite'], paste_data['pasteid']))
 
                         # get raw paste and hash them
                         try:
-                            
+
                             # Stack questions dont have a raw endpoint
-                            if ('stackexchange' in self.conf['inputs']) and (paste_data['pastesite'] in self.conf['inputs']['stackexchange']['site_list']):
+                            if ('stackexchange' in self.conf['inputs']) and (
+                                    paste_data['pastesite'] in self.conf['inputs']['stackexchange']['site_list']):
                                 # The body is already included in the first request so we do not need a second call to the API. 
-                                
+
                                 # Unescape the code block strings in the json body. 
                                 raw_body = paste_data['body']
                                 raw_paste_data = unquote_plus(raw_body)
-                                
+
                                 # now remove the old body key as we dont need it any more
                                 del paste_data['body']
-                                
+
                             else:
                                 raw_paste_uri = paste_data['scrape_url']
                                 raw_paste_data = requests.get(raw_paste_uri).text
-                                
+
                         # Cover fetch site SSLErrors
                         except requests.exceptions.SSLError as e:
                             self.logger.error("Unable to scan raw paste : {0} - {1}".format(paste_data['pasteid'], e))
                             raw_paste_data = ""
-                
+
                         # Pastebin Cache
                         if raw_paste_data == "File is not ready for scraping yet. Try again in 1 minute.":
                             self.logger.info("Paste is still cached sleeping to try again")
@@ -242,7 +247,8 @@ class PasteHunter:
                             try:
                                 raw_paste_data = requests.get(raw_paste_uri).text
                             except requests.exceptions.SSLError as e:
-                                self.logger.error("Unable to scan raw paste : {0} - {1}".format(paste_data['pasteid'], e))
+                                self.logger.error(
+                                        "Unable to scan raw paste : {0} - {1}".format(paste_data['pasteid'], e))
                                 raw_paste_data = ""
 
                         # Process the paste data here
@@ -252,7 +258,7 @@ class PasteHunter:
                         except Exception as e:
                             self.logger.error("Unable to scan raw paste : {0} - {1}".format(paste_data['pasteid'], e))
                             continue
-                
+
                         # For keywords get the word from the matched string
                         results = []
                         for match in matches:
@@ -262,56 +268,58 @@ class PasteHunter:
                                     if rule_match not in results:
                                         results.append(rule_match)
                                 results.append(str(match.rule))
-                
+
                             # But a break in here for the base64. Will use it later.
                             elif match.rule.startswith('b64'):
                                 results.append(match.rule)
-                
+
                             # Else use the rule name
                             else:
                                 results.append(match.rule)
-                
+
                         # Store all OverRides other options. 
                         paste_site = paste_data['confname']
                         store_all = self.conf['inputs'][paste_site]['store_all']
                         # remove the self.confname key as its not really needed past this point
                         del paste_data['confname']
-                
-                
+
                         # Blacklist Check
                         # If any of the blacklist rules appear then empty the result set
                         blacklisted = False
                         if self.conf['yara']['blacklist'] and 'blacklist' in results:
                             results = []
                             blacklisted = True
-                            self.logger.info("Blacklisted {0} paste {1}".format(paste_data['pastesite'], paste_data['pasteid']))
-                
+                            self.logger.info(
+                                    "Blacklisted {0} paste {1}".format(paste_data['pastesite'], paste_data['pasteid']))
+
                         # Post Process
-                
+
                         # If post module is enabled and the paste has a matching rule.
                         post_results = paste_data
                         for post_process, post_values in self.conf["post_process"].items():
                             if post_values["enabled"]:
-                                if any(i in results for i in post_values["rule_list"]) or "ALL" in post_values["rule_list"]:
+                                if any(i in results for i in post_values["rule_list"]) or "ALL" in post_values[
+                                    "rule_list"]:
                                     if not blacklisted:
-                                        self.logger.info("Running Post Module {0} on {1}".format(post_values["module"], paste_data["pasteid"]))
+                                        self.logger.info("Running Post Module {0} on {1}".format(post_values["module"],
+                                                                                                 paste_data["pasteid"]))
                                         post_module = importlib.import_module(post_values["module"])
                                         post_results = post_module.run(results,
-                                                                        raw_paste_data,
-                                                                        paste_data
-                                                                        )
-                
+                                                                       raw_paste_data,
+                                                                       paste_data
+                                                                       )
+
                         # Throw everything back to paste_data for ease.
                         paste_data = post_results
-                
+
                         # If we have a result add some meta data and send to storage
                         # If results is empty, ie no match, and store_all is True,
                         # then append "no_match" to results. This will then force output.
-                
+
                         if store_all is True:
                             if len(results) == 0:
                                 results.append('no_match')
-                                
+
                         if len(results) > 0:
                             encoded_paste_data = raw_paste_data.encode('utf-8')
                             md5 = hashlib.md5(encoded_paste_data).hexdigest()
@@ -326,12 +334,14 @@ class PasteHunter:
                                 try:
                                     output.store_paste(paste_data)
                                 except Exception as e:
-                                    self.logger.error("Unable to store {0} to {1} with error {2}".format(paste_data["pasteid"], output, e))
-                        
+                                    self.logger.error(
+                                            "Unable to store {0} to {1} with error {2}".format(paste_data["pasteid"],
+                                                                                               output, e))
+
                         end_time = time.time()
                         self.logger.debug("Processing Finished for {0} in {1} seconds".format(
-                            paste_data["pasteid"],
-                            (end_time - start_time)
+                                paste_data["pasteid"],
+                                (end_time - start_time)
                         ))
 
         except KeyboardInterrupt:
@@ -344,7 +354,7 @@ class PasteHunter:
                 queue_count = 0
                 counter = 0
                 if len(self.processes) < 5:
-                    for i in range(5-len(self.processes)):
+                    for i in range(5 - len(self.processes)):
                         self.logger.warning("Creating New Process")
                         m = multiprocessing.Process(target=self.paste_scanner)
                         # Add new process to list so we can run join on them later. 
@@ -359,7 +369,7 @@ class PasteHunter:
                         self.processes.append(m)
                         m.start()
                     counter += 1
-                
+
                 # Check if the processors are active
                 # Paste History
                 self.logger.info("Populating Queue")
@@ -375,7 +385,7 @@ class PasteHunter:
                         input_history = paste_history[input_name]
                     else:
                         input_history = []
-                        
+
                     try:
                         i = importlib.import_module(input_name)
                         # Get list of recent pastes
@@ -421,5 +431,3 @@ class PasteHunter:
 if __name__ == "__main__":
     scanner = PasteHunter()
     scanner.start_scanner()
-
-
