@@ -327,7 +327,13 @@ class PasteHunter:
                             paste_data['MD5'] = md5
                             paste_data['SHA256'] = sha256
                             paste_data['raw_paste'] = raw_paste_data
-                            paste_data['YaraRule'] = results
+
+                            # since some post processing modules might add a yara rule, this scan needs to be able to append
+                            if 'YaraRule' not in paste_data:
+                                paste_data['YaraRule'] = results
+                            else:
+                                paste_data['YaraRule'].append(results)
+
                             # Set the size for all pastes - This will override any size set by the source
                             paste_data['size'] = len(raw_paste_data)
                             for output in self.outputs:

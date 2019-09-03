@@ -131,9 +131,18 @@
     "log_path": "logs",
     "format": "%(asctime)s [%(threadName)-12.12s] %(levelname)s:%(message)s"
   },
+
   "general": {
-    "run_frequency": 300
+    "run_frequency": 60,
+    "viper": {
+        "enabled": true,
+        "api_host": "https://viper.charlesarvey.com",
+        "api_port": 80,
+        "tmp_path": "/tmp/",
+        "auth_token": "ef542e5c98f45d74e0685da61a9a10b507ee937a"
+      }
   },
+
   "post_process": {
     "post_email": {
       "enabled": true,
@@ -149,16 +158,19 @@
         "api_host": "127.0.0.1",
         "api_port": 8080
       },
-      "viper": {
-        "enabled": false,
-        "api_host": "127.0.0.1",
-        "api_port": 8080
+      "bamfdetect": {
+		"enabled": true
       }
     },
     "post_entropy": {
       "enabled": false,
       "module": "postprocess.post_entropy",
       "rule_list": ["ALL"]
+    },
+    "brands": {
+    	"enabled": false,
+    	"module": "postprocess.brands",
+    	"rule_list": ["ALL"]
     }
   }
 }

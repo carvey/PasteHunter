@@ -4,6 +4,17 @@ from .output_base import OutputBase
 
 
 class RawOutput(OutputBase):
+    """
+    This class allows the contents of a paste to be stored independently of its metadata.
+
+    Storage of these pastes serves as a local cache in case pastes get deleted, further prevents ES from not getting
+    wrecked by large pastes, and allows us to store the pastes in a web accessable directory.
+
+    To link the metadata output (elasticsearch document, json, etc) to the web-accessible paste file, use the 'url'
+    attribute in the settings file. See the 'elastic_output.py' file for an example of an output linking one output
+    to the raw paste files this output is producing.
+    """
+
     def __init__(self):
         super().__init__()
         self.get_standard_options('raw_output')

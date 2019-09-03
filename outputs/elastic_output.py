@@ -19,6 +19,10 @@ class ElasticOutput(OutputBase):
         self.weekly = self.config['outputs']['elastic_output']['weekly_index']
         es_ssl = self.config['outputs']['elastic_output']['elastic_ssl']
 
+        # if the output 'raw_output' is in the settings file, and it specifies a url that raw files are being sent to
+        # then we will attach url that to the elastic document
+        self.url = self.config['outputs'].get('raw_output', {}).get('url', {})
+
         self.test = False
 
         try:
@@ -43,7 +47,11 @@ class ElasticOutput(OutputBase):
             # ToDo: With multiple paste sites a pasteid collision is more likly!
             try:
                 pasteid = str(paste_data['pasteid'])
-                paste_data['raw_paste_url'] = 'http://files.charlesarvey.com/pastes/%s' % pasteid
+
+                # if there is a url listed for the raw_ouput, then we're just going to throw the pasteid on the end of it
+                if self.url:
+                    paste_data['raw_paste_url'] = self.url + pasteid
+
                 self.es.index(index=index_name, doc_type='paste', id=pasteid, body=paste_data)
                 self.logger.debug("Stored {0} Paste {1}, Matched Rule {2}".format(paste_data['pastesite'],
                                                                                   paste_data['pasteid'],

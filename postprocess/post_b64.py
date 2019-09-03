@@ -5,9 +5,12 @@ import gzip
 import logging
 import magic
 import requests
+import os
+import json
 from base64 import b64decode
-# This gets the raw paste and the paste_data json object
+from subprocess import check_output
 from common import parse_config
+from postprocess.viper import ViperJob
 
 conf = parse_config()
 
@@ -48,7 +51,6 @@ def run(results, raw_paste_data, paste_object):
                 except Exception as e:
                     logger.error("Unable to decompress gzip stream")
             if rule == 'b64_exe':
-                print("b64 exe!!")
                 try:
                     decoded_data = b64decode(raw_paste_data)
                     paste_object["exe_size"] = len(decoded_data)
@@ -57,40 +59,50 @@ def run(results, raw_paste_data, paste_object):
                     exe_sha256 = hashlib.sha256(decoded_data).hexdigest()
                     paste_object["exe_sha256"] = exe_sha256
 
+                except Exception as e:
+                    logger.error("Unable to decode exe file. Error: %s" % e)
+
                     # this should only get put in if this link will be valid
                     # paste_object["VT"] = 'https://www.virustotal.com/#/file/{0}'.format(paste_object["exe_md5"])
                     # vt_url = 'https://www.virustotal.com/api/v3/files/%s' % exe_md5
                     # vt_result = requests.get(vt_url, headers={'x-apikey': 'dac8c3943ea25cab7775c5be68ac67c753cb16a6fa9f63f50bd8cedf5a608b58'})
                     # paste_object["vt_result"] = vt_result
 
-                    # # write the decoded data to a file, get some data on it, and rm it
-                    tmp_file = open('/tmp/%s' % exe_md5, 'w')
-                    tmp_file.write(decoded_data)
-                    tmp_file.close()
+                # write the decoded data to a file, get some data on it, and rm it
+                tmp_name = "/tmp/%s" % paste_object['pasteid']
+                tmp_file = open(tmp_name, 'bw')
+                tmp_file.write(decoded_data)
+                tmp_file.close()
 
-                    paste_object["magic"] = magic.from_file('tmp/%s' % exe_md5)
-                    paste_object["mime"] = magic.from_file('tmp/%s' % exe_md5, mime=True)
+                # Cuckoo
+                if conf["post_process"]["post_b64"]["cuckoo"]["enabled"]:
+                    logger.info("Submitting to Cuckoo")
+                    try:
+                        task_id = send_to_cuckoo(decoded_data, paste_object["pasteid"])
+                        paste_object["Cuckoo Task ID"] = task_id
+                        logger.info("exe submitted to Cuckoo with task id {0}".format(task_id))
+                    except Exception as e:
+                        logger.error("Unabled to submit sample to cuckoo")
 
-                    os.remove('/tmp/%s' % exe_md5)
+                # Viper
+                if conf["general"]["viper"]["enabled"]:
+                    job = ViperJob(conf, paste_object["pasteid"])
+                    response = job.send()
+                    if response:
+                        response = json.loads(response.decode())
+                        paste_object['viper'] = response
 
-                    # Cuckoo
-                    if conf["post_process"]["post_b64"]["cuckoo"]["enabled"]:
-                        logger.info("Submitting to Cuckoo")
-                        try:
-                            task_id = send_to_cuckoo(decoded_data, paste_object["pasteid"])
-                            paste_object["Cuckoo Task ID"] = task_id
-                            logger.info("exe submitted to Cuckoo with task id {0}".format(task_id))
-                        except Exception as e:
-                            logger.error("Unabled to submit sample to cuckoo")
+                # bamfdetect
+                if conf["post_process"]["post_b64"]["bamfdetect"]["enabled"]:
+                    bamf = check_output("/usr/bin/python2.7 bamfdetect %s" % tmp_name, shell=True)
+                    # if bamfdetect found something, decode and add to output
+                    if bamf:
+                        bamf = json.loads(bamf.decode().strip())
+                        paste_object['bamfdetect'] = bamf[tmp_name]
+                        paste_object["YaraRule"] = [bamf[tmp_name]['type'], ]
 
-                    # Viper
-                    if conf["post_process"]["post_b64"]["viper"]["enabled"]:
-                        send_to_cuckoo(decoded_data, paste_object["pasteid"])
-
-                    # VirusTotal
-
-                except Exception as e:
-                    logger.error("Unable to decode exe file. Error: %s" % e)
+                # get rid of tmp file
+                os.remove('/tmp/%s' % paste_object["pasteid"])
 
     # Get unique domain count
     # Update the json
