@@ -26,7 +26,10 @@ class ElasticOutput(OutputBase):
         self.test = False
 
         try:
-            self.es = Elasticsearch(es_host, port=es_port, http_auth=(es_user, es_pass), use_ssl=es_ssl)
+            if es_user and es_pass:
+                self.es = Elasticsearch(es_host, port=es_port, http_auth=(es_user, es_pass), use_ssl=es_ssl)
+            else:
+                self.es = Elasticsearch(es_host, port=es_port, use_ssl=es_ssl)
             self.test = True
         except Exception as e:
             self.logger.error(e)

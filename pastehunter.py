@@ -30,7 +30,7 @@ class timeout:
         self.error_message = error_message
 
     def handle_timeout(self, signum, frame):
-        print("Process timeout: {0}".format(self.error_message))
+        self.logger.warning("Process timeout: {0}".format(self.error_message))
         sys.exit(0)
 
     def __enter__(self):
@@ -75,10 +75,10 @@ class PasteHunter:
     def init_logging(self):
         # Setup Default logging
         self.logger = logging.getLogger('pastehunter')
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
         ch = logging.StreamHandler()
         ch.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('%(levelname)s:%(filename)s: %(message)s')
+        formatter = logging.Formatter('%(levelname)-5s | %(filename)-14s | %(message)s')
         ch.setFormatter(formatter)
         self.logger.addHandler(ch)
 
@@ -171,24 +171,31 @@ class PasteHunter:
             index_file = os.path.join(self.conf['yara']['rule_path'], 'index.yar')
             self.rules = yara.compile(index_file)
         except Exception as e:
-            print("Unable to Create Yara index: ", e)
+            raise e
             sys.exit()
 
     def create_yara_index(self, rule_path, blacklist, test_rules):
         index_file = os.path.join(rule_path, 'index.yar')
         with open(index_file, 'w') as yar:
+            # for each file in the rule_path
             for filename in os.listdir(rule_path):
+                # only look at .yar files that aren't index.yar
                 if filename.endswith('.yar') and filename != 'index.yar':
+
+                    # if blacklisting is not enabled in the settings, don't include it in index.yar
                     if filename == 'blacklist.yar':
                         if blacklist:
                             self.logger.info("Enable Blacklist Rules")
                         else:
                             continue
+
+                    # if test_rules is not enabled in the settings, don't include it in index.yar
                     if filename == 'test_rules.yar':
                         if test_rules:
                             self.logger.info("Enable Test Rules")
                         else:
                             continue
+
                     include = 'include "{0}"\n'.format(filename)
                     yar.write(include)
 
@@ -202,13 +209,16 @@ class PasteHunter:
         try:
             while True:
                 if self.q.empty():
-                    # Queue was empty, sleep to prevent busy loop
+                    # Queue is empty, sleep to prevent busy loop
+                    self.logger.debug("self.q is empty")
                     sleep(0.5)
                 else:
                     paste_data = self.q.get()
+                    import pdb; pdb.set_trace()
+                    self.logger.debug(f"Pulling from q: {paste_data['pasteid']}")
 
+                    # Start a timer
                     with timeout(seconds=5):
-                        # Start a timer
                         start_time = time.time()
                         self.logger.debug(
                                 "Found New {0} paste {1}".format(paste_data['pastesite'], paste_data['pasteid']))
@@ -254,6 +264,7 @@ class PasteHunter:
                         # Process the paste data here
                         try:
                             # Scan with yara
+                            self.logger.debug(f"Scanning {raw_paste_uri}")
                             matches = self.rules.match(data=raw_paste_data)
                         except Exception as e:
                             self.logger.error("Unable to scan raw paste : {0} - {1}".format(paste_data['pasteid'], e))
@@ -262,6 +273,7 @@ class PasteHunter:
                         # For keywords get the word from the matched string
                         results = []
                         for match in matches:
+                            self.logger.debug(f"Matched: {match}")
                             if match.rule == 'core_keywords' or match.rule == 'custom_keywords':
                                 for s in match.strings:
                                     rule_match = s[1].lstrip('$')
@@ -277,7 +289,7 @@ class PasteHunter:
                             else:
                                 results.append(match.rule)
 
-                        # Store all OverRides other options. 
+                        # store_all overides other options. 
                         paste_site = paste_data['confname']
                         store_all = self.conf['inputs'][paste_site]['store_all']
                         # remove the self.confname key as its not really needed past this point
@@ -361,7 +373,7 @@ class PasteHunter:
                 counter = 0
                 if len(self.processes) < 5:
                     for i in range(5 - len(self.processes)):
-                        self.logger.warning("Creating New Process")
+                        self.logger.info("Creating new processes to scan scraped pastes")
                         m = multiprocessing.Process(target=self.paste_scanner)
                         # Add new process to list so we can run join on them later. 
                         self.processes.append(m)
@@ -400,6 +412,7 @@ class PasteHunter:
 
                         for paste in paste_list:
                             self.q.put(paste)
+                            self.logger.debug(f"Added to q: {paste['pasteid']}")
                             queue_count += 1
                         paste_history[input_name] = history
                     except Exception as e:
@@ -407,6 +420,7 @@ class PasteHunter:
 
                 if self.cache_pastes:
                     self.logger.debug("Writing History")
+
                     # Write History
                     with open('paste_history.tmp', 'w') as outfile:
                         json.dump(paste_history, outfile)
@@ -422,6 +436,7 @@ class PasteHunter:
 
                 # Slow it down a little
                 self.logger.info("Sleeping for " + str(self.conf['general']['run_frequency']) + " Seconds")
+                self.logger.debug(f"Size of Q: {self.q.qsize()}")
                 sleep(self.conf['general']['run_frequency'])
 
         except KeyboardInterrupt:
